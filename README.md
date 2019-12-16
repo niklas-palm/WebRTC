@@ -4,12 +4,6 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 A small PoC to demonstrate live streaming from a local client to the AWS elemantal suite.
 
-### AWS services used
-
-AWS MediaLive
-AWS MediaStorage
-AWS Cloudfront
-
 ## Available Scripts
 
 In the project directory, you can run:

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export function useUserMedia(requestedMedia) {
+export const useUserMedia = requestedMedia => {
   const [mediaStream, setMediaStream] = useState(null);
 
   useEffect(() => {
@@ -27,4 +27,4 @@ export function useUserMedia(requestedMedia) {
   }, [mediaStream, requestedMedia]);
 
   return mediaStream;
-}
+};

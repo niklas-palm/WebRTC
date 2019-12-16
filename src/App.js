@@ -1,17 +1,14 @@
 import React, { useRef } from "react";
 import { useUserMedia } from "./useUserMedia";
 
-// import logo from "./logo.svg";
 import "./App.css";
 
 const CAPTURE_OPTIONS = {
-  width: 1280,
-  height: 720,
   audio: false,
   video: { facingMode: "user" }
 };
 
-function App() {
+const App = () => {
   const videoRef = useRef();
   const mediaStream = useUserMedia(CAPTURE_OPTIONS);
 
@@ -19,13 +16,9 @@ function App() {
     videoRef.current.srcObject = mediaStream;
   }
 
-  function handleCanPlay() {
+  const handleCanPlay = () => {
     videoRef.current.play();
-  }
-
-  if (mediaStream) {
-    console.log(mediaStream);
-  }
+  };
 
   return (
     <div className="App">
@@ -38,6 +31,6 @@ function App() {
       />
     </div>
   );
-}
+};
 
 export default App;

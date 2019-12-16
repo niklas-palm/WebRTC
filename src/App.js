@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useRef } from "react";
 import { useUserMedia } from "./useUserMedia";
 
-import Webcam from "react-webcam";
-import logo from "./logo.svg";
+// import logo from "./logo.svg";
 import "./App.css";
 
 const CAPTURE_OPTIONS = {

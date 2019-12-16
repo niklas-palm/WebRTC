@@ -1,46 +1,42 @@
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { useUserMedia } from "./useUserMedia";
+
 import Webcam from "react-webcam";
 import logo from "./logo.svg";
 import "./App.css";
 
+const CAPTURE_OPTIONS = {
+  width: 1280,
+  height: 720,
+  audio: false,
+  video: { facingMode: "user" }
+};
+
 function App() {
-  const videoConstraints = {
-    width: 1280,
-    height: 720,
-    facingMode: "user"
-  };
+  const videoRef = useRef();
+  const mediaStream = useUserMedia(CAPTURE_OPTIONS);
 
-  const webcamRef = React.useRef(null);
+  if (mediaStream && videoRef.current && !videoRef.current.srcObject) {
+    videoRef.current.srcObject = mediaStream;
+  }
 
-  const capture = React.useCallback(() => {
-    const imageSrc = webcamRef.current.getScreenshot();
-  }, [webcamRef]);
+  function handleCanPlay() {
+    videoRef.current.play();
+  }
+
+  if (mediaStream) {
+    console.log(mediaStream);
+  }
 
   return (
     <div className="App">
-      <Webcam
-        audio={false}
-        height={720}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        width={1280}
-        videoConstraints={videoConstraints}
+      <video
+        ref={videoRef}
+        onCanPlay={handleCanPlay}
+        autoPlay
+        playsInline
+        muted
       />
-      <button onClick={capture}>Capture photo</button>
-      {/* <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header> */}
     </div>
   );
 }

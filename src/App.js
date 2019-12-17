@@ -1,7 +1,8 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { useUserMedia } from "./useUserMedia";
 
 import "./App.css";
+import startViewer from "./webrtc.js";
 
 const CAPTURE_OPTIONS = {
   audio: false,
@@ -11,6 +12,14 @@ const CAPTURE_OPTIONS = {
 const App = () => {
   const videoRef = useRef();
   const mediaStream = useUserMedia(CAPTURE_OPTIONS);
+
+  useEffect(() => {
+    console.log("useEffect run");
+
+    if (mediaStream) {
+      startViewer(mediaStream);
+    }
+  }, [mediaStream]);
 
   if (mediaStream && videoRef.current && !videoRef.current.srcObject) {
     videoRef.current.srcObject = mediaStream;

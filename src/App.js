@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useUserMedia } from "./useUserMedia";
 
 import "./App.css";
@@ -10,6 +10,7 @@ const CAPTURE_OPTIONS = {
 };
 
 const App = () => {
+  const [otherStreams, setOtherStreams] = useState([]);
   const videoRef = useRef();
   const mediaStream = useUserMedia(CAPTURE_OPTIONS);
 
@@ -29,6 +30,22 @@ const App = () => {
     videoRef.current.play();
   };
 
+  // setInterval(() => {
+  //   console.log(window.master.remoteStreams);
+  //   // if (window.master.remoteStreams.length != otherStreams.length) {
+  //   //   console.log("updated!!!!");
+
+  //   //   setOtherStreams(window.master.remoteStreams);
+  //   // }
+  // }, 2000);
+
+  const renderOtherStreams = () => {
+    // if (otherStreams.length > 0) {
+    if (window.master.remoteStreams.length > 0) {
+      return <h1>THERES ANOTHER STREAM!!</h1>;
+    }
+  };
+
   return (
     <div className="App">
       <video
@@ -38,6 +55,7 @@ const App = () => {
         playsInline
         muted
       />
+      {renderOtherStreams()}
     </div>
   );
 };

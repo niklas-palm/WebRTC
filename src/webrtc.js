@@ -8,6 +8,8 @@ const SignalingClient = require("amazon-kinesis-video-streams-webrtc")
 //   "arn:aws:kinesisvideo:us-west-2:224466796264:channel/signaling-channel-one/1576592257758";
 
 // AWS Credentials
+const accessKeyId = "AKIATIQ2DP3UKCJMDZ2U";
+const secretAccessKey = "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";
 
 const channelName = "signaling-channel-one";
 
@@ -26,6 +28,8 @@ const master = {
   remoteStreams: [],
   peerConnectionStatsInterval: null
 };
+
+window.master = master;
 
 export default async function startViewer(localMediaStream) {
   console.log(localMediaStream);
@@ -111,7 +115,8 @@ export default async function startViewer(localMediaStream) {
     credentials: {
       accessKeyId: accessKeyId,
       secretAccessKey: secretAccessKey
-      //   sessionToken: sessionToken
+      //   sessionToken: "12341234"
+      // sessionToken: sessionToken
     }
   });
 
@@ -124,6 +129,7 @@ export default async function startViewer(localMediaStream) {
       accessKeyId: accessKeyId,
       secretAccessKey: secretAccessKey,
       //   sessionToken: sessionToken,
+      //   sessionToken: "12341234",
       endpoint: endpointsByProtocol.HTTPS
     }
   );

@@ -1,3 +1,5 @@
+import CREDENTIALS from "./credentials";
+
 const AWS = require("aws-sdk");
 
 const SignalingClient = require("amazon-kinesis-video-streams-webrtc")
@@ -8,17 +10,20 @@ const SignalingClient = require("amazon-kinesis-video-streams-webrtc")
 //   "arn:aws:kinesisvideo:us-west-2:224466796264:channel/signaling-channel-one/1576592257758";
 
 // AWS Credentials
-const accessKeyId = "AKIATIQ2DP3UKCJMDZ2U";
-const secretAccessKey = "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";
+const accessKeyId = CREDENTIALS.accessKeyId;
+const secretAccessKey = CREDENTIALS.secretAccessKey;
 
 const channelName = "signaling-channel-one";
+
+// const sessionToken = "123123";
+// const endpoint = "/test";
 
 // <video> HTML elements to use to display the local webcam stream and remote stream from the master
 // const localView = document.getElementsByTagName("video")[0];
 // const remoteView = document.getElementsByTagName("video")[1];
 
-const region = "us-west-2";
-const clientId = "123";
+const region = "eu-west-1";
+// const clientId = "123";
 
 const master = {
   signalingClient: null,
@@ -31,7 +36,7 @@ const master = {
 
 window.master = master;
 
-export default async function startViewer(localMediaStream) {
+export default async function startMaster(localMediaStream) {
   console.log(localMediaStream);
 
   // These are originally fetched from the formvalues
@@ -52,28 +57,11 @@ export default async function startViewer(localMediaStream) {
     region,
     accessKeyId,
     secretAccessKey
+    // sessionToken
+    // endpoint
   });
 
-  //   const kinesisVideoClient = new AWS.KinesisVideo({
-  //     region: formValues.region,
-  //     accessKeyId: formValues.accessKeyId,
-  //     secretAccessKey: formValues.secretAccessKey,
-  //     sessionToken: formValues.sessionToken,
-  //     endpoint: formValues.endpoint,
-  // });
-
   console.log(kinesisVideoClient);
-
-  //   const getSignalingChannelEndpointResponse = await kinesisVideoClient
-  //     .getSignalingChannelEndpoint({
-  //       ChannelARN: channelARN,
-  //       SingleMasterChannelEndpointConfiguration: {
-  //         Protocols: ["WSS", "HTTPS"],
-  //         Role: "VIEWER"
-  //         // Role: kinesisVideoClient.Role.VIEWER
-  //       }
-  //     })
-  //     .promise();
 
   const describeSignalingChannelResponse = await kinesisVideoClient
     .describeSignalingChannel({
@@ -91,8 +79,8 @@ export default async function startViewer(localMediaStream) {
       ChannelARN: channelARN,
       SingleMasterChannelEndpointConfiguration: {
         Protocols: ["WSS", "HTTPS"],
+        // Role: SignalingClient.Role.MASTER
         Role: "MASTER"
-        // Role: KVSWebRTC.Role.MASTER
       }
     })
     .promise();
@@ -105,18 +93,17 @@ export default async function startViewer(localMediaStream) {
     {}
   );
   console.log("[MASTER] Endpoints: ", endpointsByProtocol);
-
   // Create Signaling Client
   master.signalingClient = new SignalingClient({
     channelARN,
     channelEndpoint: endpointsByProtocol.WSS,
+    // role: SignalingClient.Role.MASTER,
     role: "MASTER",
     region: region,
     credentials: {
       accessKeyId: accessKeyId,
       secretAccessKey: secretAccessKey
-      //   sessionToken: "12341234"
-      // sessionToken: sessionToken
+      // sessionToken
     }
   });
 
@@ -128,8 +115,7 @@ export default async function startViewer(localMediaStream) {
       region: region,
       accessKeyId: accessKeyId,
       secretAccessKey: secretAccessKey,
-      //   sessionToken: sessionToken,
-      //   sessionToken: "12341234",
+      // sessionToken,
       endpoint: endpointsByProtocol.HTTPS
     }
   );
@@ -146,18 +132,20 @@ export default async function startViewer(localMediaStream) {
 
   const iceServers = [];
   //   if (!formValues.natTraversalDisabled && !formValues.forceTURN) {
+
   iceServers.push({
     urls: `stun:stun.kinesisvideo.${region}.amazonaws.com:443`
   });
+
   //   }
   //   if (!formValues.natTraversalDisabled) {
-  //       getIceServerConfigResponse.IceServerList.forEach(iceServer =>
-  //           iceServers.push({
-  //               urls: iceServer.Uris,
-  //               username: iceServer.Username,
-  //               credential: iceServer.Password,
-  //           }),
-  //       );
+  getIceServerConfigResponse.IceServerList.forEach(iceServer =>
+    iceServers.push({
+      urls: iceServer.Uris,
+      username: iceServer.Username,
+      credential: iceServer.Password
+    })
+  );
   //   }
   console.log("[MASTER] ICE servers: ", iceServers);
 
@@ -287,5 +275,3 @@ export default async function startViewer(localMediaStream) {
     );
   });
 }
-
-// startViewer();

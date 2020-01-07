@@ -2,7 +2,8 @@ import React, { useRef, useEffect, useState } from "react";
 import { useUserMedia } from "./useUserMedia";
 
 import "./App.css";
-import startViewer from "./webrtc.js";
+import startMaster from "./master";
+import startViewer from "./viewer";
 
 const CAPTURE_OPTIONS = {
   audio: false,
@@ -18,6 +19,7 @@ const App = () => {
     console.log("useEffect run");
 
     if (mediaStream) {
+      // startMaster(mediaStream);
       startViewer(mediaStream);
     }
   }, [mediaStream]);

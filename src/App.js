@@ -7,7 +7,7 @@ import startMaster from "./master";
 import startViewer from "./viewer";
 
 const CAPTURE_OPTIONS = {
-  audio: false,
+  audio: true,
   video: { facingMode: "user" }
 };
 
@@ -26,9 +26,6 @@ const App = () => {
       process.env.REACT_APP_MASTER
         ? startMaster(mediaStream, setOtherStreams)
         : startViewer(mediaStream, setOtherStreams);
-
-      // startMaster(mediaStream, setOtherStreams);
-      // startViewer(mediaStream, setOtherStreams);
     }
   }, [mediaStream]);
 
@@ -72,7 +69,7 @@ const App = () => {
           className="OtherVideo"
           autoPlay
           playsInline
-          muted
+          // muted
         />
       </div>
     </div>

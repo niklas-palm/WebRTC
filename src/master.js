@@ -5,64 +5,34 @@ const AWS = require("aws-sdk");
 const KVSWebRTC = require("amazon-kinesis-video-streams-webrtc");
 const SignalingClient = KVSWebRTC.SignalingClient;
 
-// DescribeSignalingChannel API can also be used to get the ARN from a channel name.
-// const channelARN =
-//   "arn:aws:kinesisvideo:us-west-2:224466796264:channel/signaling-channel-one/1576592257758";
-
 // AWS Credentials
 const accessKeyId = CREDENTIALS.accessKeyId;
 const secretAccessKey = CREDENTIALS.secretAccessKey;
 
 const channelName = "signaling-channel-one";
 
-// const sessionToken = "123123";
-// const endpoint = "/test";
-
-// <video> HTML elements to use to display the local webcam stream and remote stream from the master
-// const localView = document.getElementsByTagName("video")[0];
-// const remoteView = document.getElementsByTagName("video")[1];
-
 const region = "eu-west-1";
-// const clientId = "123";
 
 const master = {
   signalingClient: null,
   peerConnectionByClientId: {},
-  dataChannelByClientId: {},
-  localStream: null,
-  remoteStreams: [],
-  peerConnectionStatsInterval: null
+  localStream: null
 };
 
-window.master = master;
-console.log(KVSWebRTC.Role.MASTER);
 export default async function startMaster(localMediaStream, setOtherStreams) {
-  console.log(localMediaStream);
+  master.localStream = localMediaStream;
 
-  // These are originally fetched from the formvalues
   const useTrickleICE = null;
-  const remoteView = null;
-  const localView = null;
 
-  //   localView,
-  //   remoteView
-  //   formValues,
-  //   onStatsReport,
-  //   onRemoteDataMessage
-  //   var viewer = {};
-  //   viewer.localView = localView;
-  //   viewer.remoteView = remoteView;
-
+  // Create KVS klient
   const kinesisVideoClient = new AWS.KinesisVideo({
     region,
     accessKeyId,
     secretAccessKey
     // sessionToken
-    // endpoint
   });
 
-  console.log(kinesisVideoClient);
-
+  // Get Channel ARN based on provided channel name (depends on meeting room)
   const describeSignalingChannelResponse = await kinesisVideoClient
     .describeSignalingChannel({
       ChannelName: channelName
@@ -92,11 +62,11 @@ export default async function startMaster(localMediaStream, setOtherStreams) {
     {}
   );
   console.log("[MASTER] Endpoints: ", endpointsByProtocol);
+
   // Create Signaling Client
   master.signalingClient = new SignalingClient({
     channelARN,
     channelEndpoint: endpointsByProtocol.WSS,
-    // role: SignalingClient.Role.MASTER,
     role: KVSWebRTC.Role.MASTER,
     region: region,
     credentials: {
@@ -105,8 +75,6 @@ export default async function startMaster(localMediaStream, setOtherStreams) {
       // sessionToken
     }
   });
-
-  console.log(master.signalingClient);
 
   // Get ICE server configuration
   const kinesisVideoSignalingChannelsClient = new AWS.KinesisVideoSignalingChannels(
@@ -119,25 +87,18 @@ export default async function startMaster(localMediaStream, setOtherStreams) {
     }
   );
 
-  console.log(kinesisVideoSignalingChannelsClient);
-
   const getIceServerConfigResponse = await kinesisVideoSignalingChannelsClient
     .getIceServerConfig({
       ChannelARN: channelARN
     })
     .promise();
 
-  console.log(getIceServerConfigResponse);
-
   const iceServers = [];
-  //   if (!formValues.natTraversalDisabled && !formValues.forceTURN) {
 
   iceServers.push({
     urls: `stun:stun.kinesisvideo.${region}.amazonaws.com:443`
   });
 
-  //   }
-  //   if (!formValues.natTraversalDisabled) {
   getIceServerConfigResponse.IceServerList.forEach(iceServer =>
     iceServers.push({
       urls: iceServer.Uris,
@@ -145,31 +106,14 @@ export default async function startMaster(localMediaStream, setOtherStreams) {
       credential: iceServer.Password
     })
   );
-  //   }
+
   console.log("[MASTER] ICE servers: ", iceServers);
 
   const configuration = {
     iceServers,
     iceTransportPolicy: "all"
-    // iceTransportPolicy: formValues.forceTURN ? "relay" : "all"
   };
 
-  //   const resolution = formValues.widescreen
-  //     ? { width: { ideal: 1280 }, height: { ideal: 720 } }
-  //     : { width: { ideal: 640 }, height: { ideal: 480 } };
-  //   const constraints = {
-  //     video: formValues.sendVideo ? resolution : false,
-  //     audio: formValues.sendAudio
-  //   };
-
-  // Get a stream from the webcam and display it in the local view
-  try {
-    // master.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-    master.localStream = localMediaStream;
-    // localView.srcObject = master.localStream;
-  } catch (e) {
-    console.error("[MASTER] Could not find webcam");
-  }
   master.signalingClient.on("open", async () => {
     console.log("[MASTER] Connected to signaling service");
   });
@@ -190,24 +134,16 @@ export default async function startMaster(localMediaStream, setOtherStreams) {
     const peerConnection = new RTCPeerConnection(configuration);
     master.peerConnectionByClientId[remoteClientId] = peerConnection;
 
-    // if (formValues.openDataChannel) {
-    //   master.dataChannelByClientId[
-    //     remoteClientId
-    //   ] = peerConnection.createDataChannel("kvsDataChannel");
-    //   peerConnection.ondatachannel = event => {
-    //     event.channel.onmessage = onRemoteDataMessage;
-    //   };
-    // }
-
     // Poll for connection stats
-    if (!master.peerConnectionStatsInterval) {
-      master.peerConnectionStatsInterval = setInterval(
-        // () => peerConnection.getStats().then(onStatsReport),
-        () => peerConnection.getStats().then(console.log),
+    // ? If we want continuos stats about peer connection
+    // if (!master.peerConnectionStatsInterval) {
+    //   master.peerConnectionStatsInterval = setInterval(
+    //     // () => peerConnection.getStats().then(onStatsReport),
+    //     () => peerConnection.getStats().then(console.log),
 
-        1000
-      );
-    }
+    //     1000
+    //   );
+    // }
 
     // Send any ICE candidates to the other peer
     peerConnection.addEventListener("icecandidate", ({ candidate }) => {
@@ -248,15 +184,12 @@ export default async function startMaster(localMediaStream, setOtherStreams) {
         "[MASTER] Received remote track from client: " + remoteClientId
       );
       setOtherStreams([event.streams[0]]);
-      // if (remoteView.srcObject) {
-      //   return;
-      // }
-      // remoteView.srcObject = event.streams[0];
     });
 
     master.localStream
       .getTracks()
       .forEach(track => peerConnection.addTrack(track, master.localStream));
+
     await peerConnection.setRemoteDescription(offer);
 
     // Create an SDP answer to send back to the client

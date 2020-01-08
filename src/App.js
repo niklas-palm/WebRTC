@@ -14,7 +14,6 @@ const CAPTURE_OPTIONS = {
 const App = () => {
   const [otherStreams, setOtherStreams] = useState([]);
   const videoRef = useRef();
-  const otherRef = useRef();
 
   const mediaStream = useUserMedia(CAPTURE_OPTIONS);
 
@@ -22,7 +21,9 @@ const App = () => {
     console.log("useEffect run");
 
     if (mediaStream) {
-      // startMaster(mediaStream);
+      console.log(mediaStream);
+
+      // startMaster(mediaStream, setOtherStreams);
       startViewer(mediaStream, setOtherStreams);
     }
   }, [mediaStream]);

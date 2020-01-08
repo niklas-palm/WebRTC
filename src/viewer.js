@@ -1,68 +1,42 @@
 import CREDENTIALS from "./credentials";
 
 const AWS = require("aws-sdk");
+const uuidv4 = require("uuid/v4");
 
-const SignalingClient = require("amazon-kinesis-video-streams-webrtc")
-  .SignalingClient;
-
-// DescribeSignalingChannel API can also be used to get the ARN from a channel name.
-// const channelARN =
-//   "arn:aws:kinesisvideo:us-west-2:224466796264:channel/signaling-channel-one/1576592257758";
+const KVSWebRTC = require("amazon-kinesis-video-streams-webrtc");
+const SignalingClient = KVSWebRTC.SignalingClient;
 
 // AWS Credentials
 const accessKeyId = CREDENTIALS.accessKeyId;
 const secretAccessKey = CREDENTIALS.secretAccessKey;
 
+// TODO: This name will be fetched from the meeting.
 const channelName = "signaling-channel-one";
 
-// const sessionToken = "123123";
-// const endpoint = "/test";
-
-// <video> HTML elements to use to display the local webcam stream and remote stream from the master
-// const localView = document.getElementsByTagName("video")[0];
-// const remoteView = document.getElementsByTagName("video")[1];
-
 const region = "eu-west-1";
-const clientId = "454";
+const clientId = uuidv4();
 
 const viewer = {
   signalingClient: null,
-  peerConnectionByClientId: {},
-  dataChannelByClientId: {},
   localStream: null,
-  remoteStreams: [],
   peerConnectionStatsInterval: null
 };
 
-window.viewer = viewer;
-
 export default async function startViewer(localMediaStream, setOtherStreams) {
-  console.log(localMediaStream);
+  viewer.localStream = localMediaStream;
 
-  // These are originally fetched from the formvalues
-  const useTrickleICE = null;
-  const remoteView = null;
-  const localView = null;
+  // Send ICE candidates as they are generated. Best performance.
+  const useTrickleICE = true;
 
-  //   localView,
-  //   remoteView
-  //   formValues,
-  //   onStatsReport,
-  //   onRemoteDataMessage
-  //   var viewer = {};
-  //   viewer.localView = localView;
-  //   viewer.remoteView = remoteView;
-
+  // Create KVS klient
   const kinesisVideoClient = new AWS.KinesisVideo({
     region,
     accessKeyId,
     secretAccessKey
     // sessionToken
-    // endpoint
   });
 
-  console.log(kinesisVideoClient);
-
+  // Get Channel ARN based on provided channel name (depends on meeting room)
   const describeSignalingChannelResponse = await kinesisVideoClient
     .describeSignalingChannel({
       ChannelName: channelName
@@ -79,8 +53,7 @@ export default async function startViewer(localMediaStream, setOtherStreams) {
       ChannelARN: channelARN,
       SingleMasterChannelEndpointConfiguration: {
         Protocols: ["WSS", "HTTPS"],
-        // Role: SignalingClient.Role.MASTER
-        Role: "VIEWER"
+        Role: KVSWebRTC.Role.VIEWER
       }
     })
     .promise();
@@ -94,34 +67,15 @@ export default async function startViewer(localMediaStream, setOtherStreams) {
   );
   console.log("[VIEWER] Endpoints: ", endpointsByProtocol);
 
-  // Create Signaling Client
-  //   master.signalingClient = new SignalingClient({
-  //     channelARN,
-  //     channelEndpoint: endpointsByProtocol.WSS,
-  //     // role: SignalingClient.Role.MASTER,
-  //     role: "VIEWER",
-  //     region: region,
-  //     credentials: {
-  //       accessKeyId: accessKeyId,
-  //       secretAccessKey: secretAccessKey
-  //       // sessionToken
-  //     }
-  //   });
-
-  //   console.log(master.signalingClient);
-
   // Get ICE server configuration
   const kinesisVideoSignalingChannelsClient = new AWS.KinesisVideoSignalingChannels(
     {
       region: region,
       accessKeyId: accessKeyId,
       secretAccessKey: secretAccessKey,
-      // sessionToken,
       endpoint: endpointsByProtocol.HTTPS
     }
   );
-
-  console.log(kinesisVideoSignalingChannelsClient);
 
   const getIceServerConfigResponse = await kinesisVideoSignalingChannelsClient
     .getIceServerConfig({
@@ -129,17 +83,11 @@ export default async function startViewer(localMediaStream, setOtherStreams) {
     })
     .promise();
 
-  console.log(getIceServerConfigResponse);
-
   const iceServers = [];
-  //   if (!formValues.natTraversalDisabled && !formValues.forceTURN) {
-
   iceServers.push({
     urls: `stun:stun.kinesisvideo.${region}.amazonaws.com:443`
   });
 
-  //   }
-  //   if (!formValues.natTraversalDisabled) {
   getIceServerConfigResponse.IceServerList.forEach(iceServer =>
     iceServers.push({
       urls: iceServer.Uris,
@@ -147,34 +95,34 @@ export default async function startViewer(localMediaStream, setOtherStreams) {
       credential: iceServer.Password
     })
   );
-  //   }
+
   console.log("[VIEWER] ICE servers: ", iceServers);
 
+  // Create Viewer signaling client
   viewer.signalingClient = new SignalingClient({
     channelARN,
     channelEndpoint: endpointsByProtocol.WSS,
-    role: "VIEWER",
+    role: KVSWebRTC.Role.VIEWER,
     clientId,
     region,
     credentials: {
       accessKeyId,
       secretAccessKey
-      // sessionToken: formValues.sessionToken,
+      // sessionToken
     }
   });
 
   const configuration = {
     iceServers,
     iceTransportPolicy: "all"
-    // iceTransportPolicy: formValues.forceTURN ? "relay" : "all"
   };
 
   viewer.peerConnection = new RTCPeerConnection(configuration);
 
   // Poll for connection stats
+  // ? If we want continuos stats about peer connection
   if (!viewer.peerConnectionStatsInterval) {
     viewer.peerConnectionStatsInterval = setInterval(
-      // () => peerConnection.getStats().then(onStatsReport),
       () => viewer.peerConnection.getStats().then(console.log),
       1000
     );
@@ -183,18 +131,13 @@ export default async function startViewer(localMediaStream, setOtherStreams) {
   viewer.signalingClient.on("open", async () => {
     console.log("[VIEWER] Connected to signaling service");
 
-    // Get a stream from the webcam, add it to the peer connection, and display it in the local view
-    try {
-      viewer.localStream = localMediaStream;
-      viewer.localStream
-        .getTracks()
-        .forEach(track =>
-          viewer.peerConnection.addTrack(track, viewer.localStream)
-        );
-    } catch (e) {
-      console.error("[VIEWER] Could not find webcam");
-      return;
-    }
+    // Add local stream to peerconnection.
+    // Triggers 'track' event on master
+    viewer.localStream
+      .getTracks()
+      .forEach(track =>
+        viewer.peerConnection.addTrack(track, viewer.localStream)
+      );
 
     // Create an SDP offer to send to the master
     console.log("[VIEWER] Creating SDP offer");
@@ -206,12 +149,12 @@ export default async function startViewer(localMediaStream, setOtherStreams) {
     );
 
     // When trickle ICE is enabled, send the offer now and then send ICE candidates as they are generated. Otherwise wait on the ICE candidates.
-    // if (formValues.useTrickleICE) {
-    //   console.log("[VIEWER] Sending SDP offer");
-    //   viewer.signalingClient.sendSdpOffer(
-    //     viewer.peerConnection.localDescription
-    //   );
-    // }
+    if (useTrickleICE) {
+      console.log("[VIEWER] Sending SDP offer");
+      viewer.signalingClient.sendSdpOffer(
+        viewer.peerConnection.localDescription
+      );
+    }
     console.log("[VIEWER] Generating ICE candidates");
   });
 
@@ -241,41 +184,34 @@ export default async function startViewer(localMediaStream, setOtherStreams) {
       console.log("[VIEWER] Generated ICE candidate");
 
       // When trickle ICE is enabled, send the ICE candidates as they are generated.
-      //   if (formValues.useTrickleICE) {
-      //     console.log("[VIEWER] Sending ICE candidate");
-      //     viewer.signalingClient.sendIceCandidate(candidate);
-      //   }
-      // } else {
-
+      if (useTrickleICE) {
+        console.log("[VIEWER] Sending ICE candidate");
+        viewer.signalingClient.sendIceCandidate(candidate);
+      }
+    } else {
       console.log("[VIEWER] All ICE candidates have been generated");
 
       // When trickle ICE is disabled, send the offer now that all the ICE candidates have ben generated.
-      //   if (!formValues.useTrickleICE) {
-      console.log("[VIEWER] Sending SDP offer");
-      viewer.signalingClient.sendSdpOffer(
-        viewer.peerConnection.localDescription
-      );
-      //   }
+      if (!useTrickleICE) {
+        console.log("[VIEWER] Sending SDP offer");
+        viewer.signalingClient.sendSdpOffer(
+          viewer.peerConnection.localDescription
+        );
+      }
     }
   });
 
-  // As remote tracks are received, add them to the remote view
-  // TODO: Handle this!!!!! ---------------
+  // As remote tracks are received, handle them
   viewer.peerConnection.addEventListener("track", event => {
     console.log("[VIEWER] Received remote track");
-    console.log(event);
     setOtherStreams([event.streams[0]]);
-    //   if (remoteView.srcObject) {
-    //     return;
-    //   }
-    //   viewer.remoteStream = event.streams[0];
-    //   remoteView.srcObject = viewer.remoteStream;
   });
 
   console.log("[VIEWER] Starting viewer connection");
   viewer.signalingClient.open();
 }
 
+// TODO use stopViewer() when it becomes necessary
 function stopViewer() {
   console.log("[VIEWER] Stopping viewer connection");
   if (viewer.signalingClient) {

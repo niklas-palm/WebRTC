@@ -36,7 +36,7 @@ const master = {
 
 window.master = master;
 console.log(KVSWebRTC.Role.MASTER);
-export default async function startMaster(localMediaStream) {
+export default async function startMaster(localMediaStream, setOtherStreams) {
   console.log(localMediaStream);
 
   // These are originally fetched from the formvalues
@@ -162,22 +162,24 @@ export default async function startMaster(localMediaStream) {
   //     audio: formValues.sendAudio
   //   };
 
-      // Get a stream from the webcam and display it in the local view
-      try {
-        // master.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        master.localStream = localMediaStream;
-        // localView.srcObject = master.localStream;
-      } catch (e) {
-        console.error("[MASTER] Could not find webcam");
-      }
+  // Get a stream from the webcam and display it in the local view
+  try {
+    // master.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    master.localStream = localMediaStream;
+    // localView.srcObject = master.localStream;
+  } catch (e) {
+    console.error("[MASTER] Could not find webcam");
+  }
   master.signalingClient.on("open", async () => {
     console.log("[MASTER] Connected to signaling service");
-
-
   });
 
-  master.signalingClient.on("close", async () => { console.log("[MASTER] Closed signaling service");});
-  master.signalingClient.on("error", async () => { console.log("[MASTER] Received an error from signaling service");});
+  master.signalingClient.on("close", async () => {
+    console.log("[MASTER] Closed signaling service");
+  });
+  master.signalingClient.on("error", async () => {
+    console.log("[MASTER] Received an error from signaling service");
+  });
 
   console.log(master);
 
@@ -245,10 +247,11 @@ export default async function startMaster(localMediaStream) {
       console.log(
         "[MASTER] Received remote track from client: " + remoteClientId
       );
-      if (remoteView.srcObject) {
-        return;
-      }
-      remoteView.srcObject = event.streams[0];
+      setOtherStreams([event.streams[0]]);
+      // if (remoteView.srcObject) {
+      //   return;
+      // }
+      // remoteView.srcObject = event.streams[0];
     });
 
     master.localStream
@@ -278,6 +281,6 @@ export default async function startMaster(localMediaStream) {
     );
   });
 
-  console.log('[MASTER] Starting master connection');
+  console.log("[MASTER] Starting master connection");
   master.signalingClient.open();
 }

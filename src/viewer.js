@@ -23,7 +23,7 @@ const channelName = "signaling-channel-one";
 // const remoteView = document.getElementsByTagName("video")[1];
 
 const region = "eu-west-1";
-// const clientId = "123";
+const clientId = "454";
 
 const viewer = {
   signalingClient: null,
@@ -36,7 +36,7 @@ const viewer = {
 
 window.viewer = viewer;
 
-export default async function startViewer(localMediaStream) {
+export default async function startViewer(localMediaStream, setOtherStreams) {
   console.log(localMediaStream);
 
   // These are originally fetched from the formvalues
@@ -150,13 +150,11 @@ export default async function startViewer(localMediaStream) {
   //   }
   console.log("[VIEWER] ICE servers: ", iceServers);
 
-  // ! -------------
-
   viewer.signalingClient = new SignalingClient({
     channelARN,
     channelEndpoint: endpointsByProtocol.WSS,
     role: "VIEWER",
-    clientId: "123",
+    clientId,
     region,
     credentials: {
       accessKeyId,
@@ -248,6 +246,7 @@ export default async function startViewer(localMediaStream) {
       //     viewer.signalingClient.sendIceCandidate(candidate);
       //   }
       // } else {
+
       console.log("[VIEWER] All ICE candidates have been generated");
 
       // When trickle ICE is disabled, send the offer now that all the ICE candidates have ben generated.
@@ -261,15 +260,17 @@ export default async function startViewer(localMediaStream) {
   });
 
   // As remote tracks are received, add them to the remote view
-  // !Handle this!!!!!
-  // viewer.peerConnection.addEventListener("track", event => {
-  //   console.log("[VIEWER] Received remote track");
-  //   if (remoteView.srcObject) {
-  //     return;
-  //   }
-  //   viewer.remoteStream = event.streams[0];
-  //   remoteView.srcObject = viewer.remoteStream;
-  // });
+  // TODO: Handle this!!!!! ---------------
+  viewer.peerConnection.addEventListener("track", event => {
+    console.log("[VIEWER] Received remote track");
+    console.log(event);
+    setOtherStreams([event.streams[0]]);
+    //   if (remoteView.srcObject) {
+    //     return;
+    //   }
+    //   viewer.remoteStream = event.streams[0];
+    //   remoteView.srcObject = viewer.remoteStream;
+  });
 
   console.log("[VIEWER] Starting viewer connection");
   viewer.signalingClient.open();

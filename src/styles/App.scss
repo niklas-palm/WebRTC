@@ -1,0 +1,27 @@
+.Container {
+  width: 100%;
+  display: flex;
+
+  .OtherStreams {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .OtherVideo {
+      margin: 3em;
+      width: 65%;
+      //   width: 200px;
+      //   height: 200px;
+    }
+  }
+
+  .SelfVideo {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 20%;
+    height: 20%;
+  }
+}

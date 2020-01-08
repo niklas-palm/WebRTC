@@ -2,8 +2,8 @@ import CREDENTIALS from "./credentials";
 
 const AWS = require("aws-sdk");
 
-const SignalingClient = require("amazon-kinesis-video-streams-webrtc")
-  .SignalingClient;
+const KVSWebRTC = require("amazon-kinesis-video-streams-webrtc");
+const SignalingClient = KVSWebRTC.SignalingClient;
 
 // DescribeSignalingChannel API can also be used to get the ARN from a channel name.
 // const channelARN =
@@ -35,7 +35,7 @@ const master = {
 };
 
 window.master = master;
-
+console.log(KVSWebRTC.Role.MASTER);
 export default async function startMaster(localMediaStream) {
   console.log(localMediaStream);
 
@@ -79,8 +79,7 @@ export default async function startMaster(localMediaStream) {
       ChannelARN: channelARN,
       SingleMasterChannelEndpointConfiguration: {
         Protocols: ["WSS", "HTTPS"],
-        // Role: SignalingClient.Role.MASTER
-        Role: "MASTER"
+        Role: KVSWebRTC.Role.MASTER
       }
     })
     .promise();
@@ -98,7 +97,7 @@ export default async function startMaster(localMediaStream) {
     channelARN,
     channelEndpoint: endpointsByProtocol.WSS,
     // role: SignalingClient.Role.MASTER,
-    role: "MASTER",
+    role: KVSWebRTC.Role.MASTER,
     region: region,
     credentials: {
       accessKeyId: accessKeyId,
@@ -163,18 +162,22 @@ export default async function startMaster(localMediaStream) {
   //     audio: formValues.sendAudio
   //   };
 
+      // Get a stream from the webcam and display it in the local view
+      try {
+        // master.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        master.localStream = localMediaStream;
+        // localView.srcObject = master.localStream;
+      } catch (e) {
+        console.error("[MASTER] Could not find webcam");
+      }
   master.signalingClient.on("open", async () => {
     console.log("[MASTER] Connected to signaling service");
 
-    // Get a stream from the webcam and display it in the local view
-    try {
-      // master.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      master.localStream = localMediaStream;
-      // localView.srcObject = master.localStream;
-    } catch (e) {
-      console.error("[MASTER] Could not find webcam");
-    }
+
   });
+
+  master.signalingClient.on("close", async () => { console.log("[MASTER] Closed signaling service");});
+  master.signalingClient.on("error", async () => { console.log("[MASTER] Received an error from signaling service");});
 
   console.log(master);
 
@@ -274,4 +277,7 @@ export default async function startMaster(localMediaStream) {
       "[MASTER] Generating ICE candidates for client: " + remoteClientId
     );
   });
+
+  console.log('[MASTER] Starting master connection');
+  master.signalingClient.open();
 }

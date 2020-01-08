@@ -15,7 +15,9 @@
     "uuid": "^3.3.3"
   },
   "scripts": {
+    "master": "REACT_APP_MASTER=true react-scripts start",
     "start": "react-scripts start",
+    "viewer": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

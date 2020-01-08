@@ -23,8 +23,12 @@ const App = () => {
     if (mediaStream) {
       console.log(mediaStream);
 
+      process.env.REACT_APP_MASTER
+        ? startMaster(mediaStream, setOtherStreams)
+        : startViewer(mediaStream, setOtherStreams);
+
       // startMaster(mediaStream, setOtherStreams);
-      startViewer(mediaStream, setOtherStreams);
+      // startViewer(mediaStream, setOtherStreams);
     }
   }, [mediaStream]);
 

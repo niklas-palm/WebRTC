@@ -28,6 +28,9 @@ export default async function startViewer(localMediaStream, setOtherStreams) {
   // Send ICE candidates as they are generated. Best performance.
   const useTrickleICE = true;
 
+  console.log(process.argv);
+  console.log(process.env);
+
   // Create KVS klient
   const kinesisVideoClient = new AWS.KinesisVideo({
     region,
@@ -121,12 +124,12 @@ export default async function startViewer(localMediaStream, setOtherStreams) {
 
   // Poll for connection stats
   // ? If we want continuos stats about peer connection
-  if (!viewer.peerConnectionStatsInterval) {
-    viewer.peerConnectionStatsInterval = setInterval(
-      () => viewer.peerConnection.getStats().then(console.log),
-      1000
-    );
-  }
+  // if (!viewer.peerConnectionStatsInterval) {
+  //   viewer.peerConnectionStatsInterval = setInterval(
+  //     () => viewer.peerConnection.getStats().then(console.log),
+  //     1000
+  //   );
+  // }
 
   viewer.signalingClient.on("open", async () => {
     console.log("[VIEWER] Connected to signaling service");
